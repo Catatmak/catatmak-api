@@ -1,43 +1,38 @@
+/* eslint-disable camelcase */
 /* eslint-disable max-len */
 /* eslint-disable require-jsdoc */
 const wrapper = require('../../../utils/wrapper');
 const {BadRequestError} = require('../../../utils/error');
-const {nanoid} = require('nanoid');
 const books = require('../../../data/books');
+const {encyptDataAES256Cbc} = require('../../../utils/crypsi');
 
 class UpsertClass {
-  async createBook(payload) {
+  async createFinancial(payload) {
     try {
-      const id = nanoid(16);
-      const insertedAt = new Date().toISOString();
-      const updatedAt = insertedAt;
-      let finished = false;
+      const {title, category, price, created_at, type} = payload;
+      const {phone} = payload.auth.credentials;
+      const collection = payload.mongo.db.collection('financials');
 
-      if (payload.pageCount == payload.readPage) {
-        finished = true;
-      }
-
-      if (payload.readPage > payload.pageCount) {
-        return wrapper.error(new BadRequestError('Gagal menambahkan buku. readPage tidak boleh lebih besar dari pageCount'), 'payload is not valid', 400);
-      }
-
-      const newData = {
-        id: id,
-        ...payload,
-        finished: finished,
-        insertedAt: insertedAt,
-        updatedAt: updatedAt,
+      const model = {
+        phone: phone,
+        title: encyptDataAES256Cbc(title),
+        price: encyptDataAES256Cbc(price),
+        type: type,
+        category: category,
+        created_at: created_at,
+        updated_at: created_at,
       };
 
-      books.push(newData);
+      const data = await collection.insertOne(model);
 
-      const response = {
-        bookId: newData.id,
-      };
+      if (!data) {
+        return wrapper.error(new BadRequestError('failed insert financial'), 'internal server error', 500);
+      }
 
-      return wrapper.data(response, 'Buku berhasil ditambahkan', 201);
+      return wrapper.data(data, 'success insert financial', 201);
     } catch (error) {
-      return wrapper.error(new BadRequestError('Buku gagal ditambahkan'), 'Internal server error', 500);
+      console.log(error);
+      return wrapper.error(new BadRequestError('failed insert financial'), 'internal server error', 500);
     }
   }
 

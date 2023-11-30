@@ -10,18 +10,18 @@ const validator = require('../../../utils/validator');
 const commandModel = require('../domain/command_model');
 const queryModel = require('../domain/query_model');
 
-async function createBook(req, res) {
+async function createFinancial(req, res) {
   const payload = {
     ...req.payload,
   };
 
-  const validatePayload = validator.isValidPayload(payload, commandModel.createBookModel);
+  const validatePayload = validator.isValidPayload(payload, commandModel.createFinancialModel);
 
   const postRequest = async (result) => {
     if (result.err) {
       return result;
     }
-    return upsertUsecase.createBook(result.data);
+    return upsertUsecase.createFinancial({...result.data, mongo: req.mongo, auth: req.auth});
   };
 
   const sendResponse = async (result) => {
@@ -177,8 +177,11 @@ const handlers = [
   },
   {
     method: 'POST',
-    path: '/books',
-    handler: createBook,
+    path: '/financials',
+    handler: createFinancial,
+    options: {
+      auth: 'auth-catatmak',
+    },
   },
   {
     method: 'GET',

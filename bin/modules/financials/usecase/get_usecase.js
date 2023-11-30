@@ -63,7 +63,7 @@ class GetClass {
       data.map((item) => {
         result.push({
           id: item._id,
-          outcome_name: decryptDataAES256Cbc(item.outcome_name),
+          title: decryptDataAES256Cbc(item.title),
           price: helpers.formatToRupiah(decryptDataAES256Cbc(item.price)),
           type: item.type,
           category: item.category ? item.category : 'Tidak Terkategori',
@@ -102,26 +102,15 @@ class GetClass {
         }
 
         pipeline.push({
-          $match: {created_at: {$gte: setDate, $lt: targetDate}},
+          $match: {
+            created_at: {$gte: setDate, $lt: targetDate},
+            phone: phone,
+          },
         });
       }
 
-      pipeline.push(
-          {
-            $match: {phone},
-          },
-          {
-            $sort: {
-              created_at: -1,
-            },
-          },
-      );
-
       const data = await collection.aggregate(pipeline).toArray();
-
-      if (data.length < 1) {
-        return wrapper.data([], 'data not found', 200);
-      }
+      console.log(data, JSON.stringify(pipeline));
 
       const result = data.reduce((accumulator, item) => {
         const decryptedPrice = decryptDataAES256Cbc(item.price);

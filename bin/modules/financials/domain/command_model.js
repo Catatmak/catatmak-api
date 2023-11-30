@@ -45,8 +45,17 @@ const updateBookModel = joi.object({
   reading: joi.boolean().optional(),
 });
 
+const createFinancialModel = joi.object({
+  title: joi.string().required(),
+  type: joi.string().required(),
+  price: joi.string().required(),
+  category: joi.string().required(),
+  created_at: joi.date().required(),
+});
+
 module.exports = {
   createBookModel,
   updateBookModel,
+  createFinancialModel,
 };
 
