@@ -34,19 +34,19 @@ async function createFinancial(req, res) {
   return sendResponse(await postRequest(validatePayload));
 };
 
-async function updateBook(req, res) {
+async function updateFinancial(req, res) {
   const payload = {
     ...req.params,
     ...req.payload,
   };
 
-  const validatePayload = validator.isValidPayload(payload, commandModel.updateBookModel);
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateFinancialModel);
 
   const postRequest = async (result) => {
     if (result.err) {
       return result;
     }
-    return upsertUsecase.updateBook(result.data);
+    return upsertUsecase.updateFinancial({...result.data, mongo: req.mongo, auth: req.auth});
   };
 
   const sendResponse = async (result) => {
@@ -184,18 +184,21 @@ const handlers = [
     },
   },
   {
+    method: 'PUT',
+    path: '/financials/{id}',
+    handler: updateFinancial,
+    options: {
+      auth: 'auth-catatmak',
+    },
+  },
+  {
     method: 'GET',
-    path: '/books/{bookId}',
+    path: '/books/{id}',
     handler: getBookById,
   },
   {
-    method: 'PUT',
-    path: '/books/{bookId}',
-    handler: updateBook,
-  },
-  {
     method: 'DELETE',
-    path: '/books/{bookId}',
+    path: '/books/{id}',
     handler: deleteBook,
   },
 ];

@@ -110,7 +110,6 @@ class GetClass {
       }
 
       const data = await collection.aggregate(pipeline).toArray();
-      console.log(data, JSON.stringify(pipeline));
 
       const result = data.reduce((accumulator, item) => {
         const decryptedPrice = decryptDataAES256Cbc(item.price);
