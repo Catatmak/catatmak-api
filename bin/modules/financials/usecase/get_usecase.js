@@ -1,10 +1,9 @@
 /* eslint-disable max-len */
 /* eslint-disable require-jsdoc */
 const wrapper = require('../../../utils/wrapper');
-const books = require('../../../data/books');
-const {BadRequestError} = require('../../../utils/error');
 const {decryptDataAES256Cbc} = require('../../../utils/crypsi');
 const helpers = require('../../../utils/helpers');
+const {ObjectId} = require('mongodb');
 
 class GetClass {
   async getAllFinancials(payload) {
@@ -129,24 +128,25 @@ class GetClass {
       return wrapper.data(result, 'success get financials total', 200);
     } catch (error) {
       console.log(error);
-      return wrapper.data(error, 'Gagal mengambil data buku', 500);
+      return wrapper.data(error, 'failed get financials total', 500);
     }
   }
 
-  async getBookById(payload) {
+  async getFinancialById(payload) {
     try {
-      const getData = books.filter((n) => n.id === payload.bookId)[0];
-      if (!getData) {
-        return wrapper.error(new BadRequestError('Buku tidak ditemukan'), 'data not found', 404);
+      const {id} = payload;
+      const collection = payload.mongo.db.collection('financials');
+      // eslint-disable-next-line new-cap
+      const data = await collection.findOne({_id: ObjectId(id)});
+
+      if (!data) {
+        return wrapper.error(true, 'failed get detail financial', 500);
       }
 
-      const response = {
-        book: getData,
-      };
-
-      return wrapper.data(response, 'Sukses mengambil data detail buku', 200);
+      return wrapper.data(data, 'success get detail financial', 200);
     } catch (error) {
-      return wrapper.data(error, 'Gagal mengambil data buku', 500);
+      console.log(error);
+      return wrapper.data(error, 'failed get detail financial', 500);
     }
   }
 }

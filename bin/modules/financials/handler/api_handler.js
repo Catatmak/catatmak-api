@@ -59,19 +59,19 @@ async function updateFinancial(req, res) {
   return sendResponse(await postRequest(validatePayload));
 };
 
-async function deleteBook(req, res) {
+async function deleteFinancial(req, res) {
   const payload = {
     ...req.params,
   };
 
-  const validatePayload = validator.isValidPayload(payload, queryModel.bookId);
+  const validatePayload = validator.isValidPayload(payload, queryModel.id);
 
   const postRequest = async (result) => {
     if (result.err) {
       return result;
     }
 
-    return upsertUsecase.deleteBook(result.data);
+    return upsertUsecase.deleteFinancial({...result.data, mongo: req.mongo, auth: req.auth});
   };
 
   const sendResponse = async (result) => {
@@ -134,23 +134,23 @@ async function getFinancialsTotal(req, res) {
 };
 
 
-async function getBookById(req, res) {
+async function getFinancialById(req, res) {
   const payload = {
     ...req.params,
   };
 
-  const validatePayload = validator.isValidPayload(payload, queryModel.bookId);
+  const validatePayload = validator.isValidPayload(payload, queryModel.id);
 
   const postRequest = async (result) => {
     if (result.err) {
       return result;
     }
-    return getUsecase.getBookById(result.data);
+    return getUsecase.getFinancialById({...result.data, mongo: req.mongo, auth: req.auth});
   };
 
   const sendResponse = async (result) => {
     if (result.err) {
-      return wrapper.response(res, 'fail', result, result.message);
+      return wrapper.response(res, 'fail', result, result.message, result.code);
     }
 
     return wrapper.response(res, 'success', result, result.message, 200);
@@ -193,13 +193,19 @@ const handlers = [
   },
   {
     method: 'GET',
-    path: '/books/{id}',
-    handler: getBookById,
+    path: '/financials/{id}',
+    handler: getFinancialById,
+    options: {
+      auth: 'auth-catatmak',
+    },
   },
   {
     method: 'DELETE',
-    path: '/books/{id}',
-    handler: deleteBook,
+    path: '/financials/{id}',
+    handler: deleteFinancial,
+    options: {
+      auth: 'auth-catatmak',
+    },
   },
 ];
 

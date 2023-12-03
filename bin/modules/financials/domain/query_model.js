@@ -6,8 +6,8 @@ const pagination = joi.object({
   name: joi.string().optional().allow(''),
 });
 
-const bookId = joi.object({
-  bookId: joi.string().required(),
+const id = joi.object({
+  id: joi.string().required(),
 });
 
 const getAllQuery = joi.object({
@@ -20,7 +20,7 @@ const getAllQuery = joi.object({
 
 module.exports = {
   pagination,
-  bookId,
+  id,
   getAllQuery,
 };
 

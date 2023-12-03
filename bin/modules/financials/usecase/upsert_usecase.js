@@ -4,9 +4,9 @@
 /* eslint-disable require-jsdoc */
 const wrapper = require('../../../utils/wrapper');
 const {BadRequestError} = require('../../../utils/error');
-const books = require('../../../data/books');
 const {encyptDataAES256Cbc} = require('../../../utils/crypsi');
 const {ObjectId} = require('mongodb');
+
 class UpsertClass {
   async createFinancial(payload) {
     try {
@@ -67,19 +67,21 @@ class UpsertClass {
     }
   }
 
-  async deleteBook(payload) {
+  async deleteFinancial(payload) {
     try {
-      const index = books.findIndex((book) => book.id === payload.bookId);
+      const {id} = payload;
+      const collection = payload.mongo.db.collection('financials');
+      // eslint-disable-next-line new-cap
+      const data = await collection.deleteOne({_id: ObjectId(id)});
 
-      if (index == -1) {
-        return wrapper.error(new BadRequestError('Buku gagal dihapus. Id tidak ditemukan'), 'data not found', 404);
+      if (!data) {
+        return wrapper.data(data, 'failed delete financial', 500);
       }
 
-      books.splice(index, 1);
-
-      return wrapper.data('', 'Buku berhasil dihapus', 200);
+      return wrapper.data(data, 'success delete financial', 200);
     } catch (error) {
-      return wrapper.data(error, 'Buku gagal dihapus', 500);
+      console.log(error);
+      return wrapper.data(error, 'failed delete financial', 500);
     }
   }
 }
