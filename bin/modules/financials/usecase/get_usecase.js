@@ -4,7 +4,8 @@ const wrapper = require('../../../utils/wrapper');
 const {decryptDataAES256Cbc} = require('../../../utils/crypsi');
 const helpers = require('../../../utils/helpers');
 const {ObjectId} = require('mongodb');
-const {format, parse, isValid} = require('date-fns');
+const {format, parse, isValid, startOfWeek, endOfWeek} = require('date-fns');
+const idLocale = require('date-fns/locale/id');
 
 class GetClass {
   async getAllFinancials(payload) {
@@ -33,11 +34,11 @@ class GetClass {
       } else if (date === 'weekly') {
         const startOfMonth = new Date();
         startOfMonth.setDate(1); // Set to the first day of the month
-        startOfMonth.setHours(0, 0, 0, 0);
+        startOfMonth.setHours(0, 1, 0, 0); // Set to 00:01
 
         const endOfMonth = new Date(startOfMonth);
         endOfMonth.setMonth(startOfMonth.getMonth() + 1); // Set to the first day of the next month
-        endOfMonth.setHours(0, 0, 0, 0);
+        endOfMonth.setHours(0, 0, 0, 0); // Set to 00:00
 
         matchStage.$match.type = type;
         matchStage.$match.created_at = {
@@ -51,6 +52,7 @@ class GetClass {
         const endOfYear = new Date(new Date().getFullYear() + 1, 0, 0); // Set to the last day of the year
         endOfYear.setHours(0, 0, 0, 0);
 
+        matchStage.$match.type = type;
         matchStage.$match.created_at = {
           $gte: startOfYear,
           $lt: endOfYear,
@@ -66,6 +68,7 @@ class GetClass {
             $match: {created_at: {$gte: parseDate(startDate), $lt: parseDate(endDate)}},
           });
         }
+        matchStage.$match.type = type;
       }
 
       pipeline.push(matchStage, {
@@ -100,20 +103,20 @@ class GetClass {
       if (date === 'weekly') {
         const weeklyResults = [];
 
-        // Iterate through each transaction in the data
         data.forEach((transaction) => {
           const transactionDate = new Date(transaction.created_at);
-          const weekStartDate = new Date(transactionDate.getFullYear(), transactionDate.getMonth(), transactionDate.getDate() - transactionDate.getDay());
-          const weekEndDate = new Date(weekStartDate);
-          weekEndDate.setDate(weekEndDate.getDate() + 6);
+
+          // Calculate the start and end of the week
+          const weekStartDate = startOfWeek(transactionDate, {weekStartsOn: 0}); // Assuming Monday is the first day of the week
+          const weekEndDate = endOfWeek(weekStartDate);
 
           // Format the week start and end dates using date-fns
-          const formattedWeekStartDate = format(weekStartDate, 'dd MMMM yyyy', {locale: require('date-fns/locale/id')});
-          const formattedWeekEndDate = format(weekEndDate, 'dd MMMM yyyy', {locale: require('date-fns/locale/id')});
+          const formattedWeekStartDate = format(weekStartDate, 'dd MMMM yyyy', {locale: idLocale});
+          const formattedWeekEndDate = format(weekEndDate, 'dd MMMM yyyy', {locale: idLocale});
           const formattedWeekDateRange = `${formattedWeekStartDate} - ${formattedWeekEndDate}`;
 
           // Find the corresponding week in the results array
-          let weekResult = weeklyResults.find((week) => week.date === formattedWeekDateRange);
+          let weekResult = weeklyResults.find((week) => week.title === formattedWeekDateRange);
 
           // If the week is not in the results array, initialize it
           if (!weekResult) {
@@ -121,18 +124,58 @@ class GetClass {
               title: formattedWeekDateRange,
               sum: 0,
               count: 0,
-              weekStartDate: new Date(weekStartDate).toISOString().split('T')[0],
-              weekEndDate: new Date(weekEndDate).toISOString().split('T')[0],
+              startDate: format(weekStartDate, 'dd-MM-yyyy', {locale: idLocale}),
+              endDate: format(weekEndDate, 'dd-MM-yyyy', {locale: idLocale}),
             };
             weeklyResults.push(weekResult);
           }
 
           // Update the sum and count for the corresponding week
-          weekResult.sum += parseFloat(decryptDataAES256Cbc(transaction.price));
+          weekResult.sum += parseInt(decryptDataAES256Cbc(transaction.price));
           weekResult.count += 1;
         });
 
+        weeklyResults.pop();
+
         return wrapper.data(weeklyResults, 'success get financials', 200);
+      }
+
+      if (date === 'monthly') {
+        const monthlyResults = [];
+
+        // Iterate through each transaction in the data
+        data.forEach((transaction) => {
+          const transactionDate = new Date(transaction.created_at);
+          const monthStartDate = new Date(transactionDate.getFullYear(), transactionDate.getMonth(), 1);
+          const monthEndDate = new Date(transactionDate.getFullYear(), transactionDate.getMonth() + 1, 0); // Set to the last day of the month
+
+          // Set the start date to the first day of the month
+          monthStartDate.setDate(1);
+
+          // Format the month start and end dates using date-fns
+          const formattedMonthStartDate = format(monthStartDate, 'MMMM yyyy', {locale: require('date-fns/locale/id')});
+          const formattedMonthDateRange = `${formattedMonthStartDate}`;
+
+          // Find the corresponding month in the results array
+          let monthResult = monthlyResults.find((month) => month.title === formattedMonthDateRange);
+
+          // If the month is not in the results array, initialize it
+          if (!monthResult) {
+            monthResult = {
+              title: formattedMonthDateRange,
+              sum: 0,
+              count: 0,
+              startDate: format(monthStartDate, 'dd-MM-yyyy', {locale: require('date-fns/locale/id')}),
+              endDate: format(monthEndDate, 'dd-MM-yyyy', {locale: require('date-fns/locale/id')}),
+            };
+            monthlyResults.push(monthResult);
+          }
+
+          // Update the sum and count for the corresponding month
+          monthResult.sum += parseFloat(decryptDataAES256Cbc(transaction.price));
+          monthResult.count += 1;
+        });
+        return wrapper.data(monthlyResults, 'success get financials', 200);
       }
 
       return wrapper.data(data, 'success get financials', 200);
