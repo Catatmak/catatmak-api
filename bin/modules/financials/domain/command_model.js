@@ -62,10 +62,13 @@ const updateFinancialModel = joi.object({
   created_at: joi.date().optional(),
 });
 
+const updateFinancialBulkModel = joi.array().items(updateFinancialModel);
+
 module.exports = {
   createBookModel,
   updateBookModel,
   createFinancialModel,
   updateFinancialModel,
+  updateFinancialBulkModel,
 };
 

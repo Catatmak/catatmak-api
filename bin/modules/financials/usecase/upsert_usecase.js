@@ -84,6 +84,53 @@ class UpsertClass {
       return wrapper.data(error, 'failed delete financial', 500);
     }
   }
+
+  async updateBulkFinancials(payload) {
+    try {
+      const {phone} = payload.auth.credentials;
+      const collection = payload.mongo.db.collection('financials');
+      const updates = [];
+
+      for (const financial of payload.data) {
+        const {id, title, category, price, created_at, type} = financial;
+        const filter = {_id: ObjectId(id), phone: phone};
+
+        const update = {
+          $set: {
+            title: encyptDataAES256Cbc(title),
+            price: encyptDataAES256Cbc(price),
+            type: type,
+            category: category,
+            created_at: created_at,
+            updated_at: created_at ? created_at : new Date(),
+          },
+        };
+
+        updates.push(collection.updateOne(filter, update));
+      }
+
+      const results = await Promise.all(updates);
+
+      const modifiedCount = results.reduce((acc, result) => acc + result.modifiedCount, 0);
+
+      if (modifiedCount !== payload.data.length) {
+        return wrapper.error(
+            new BadRequestError('failed update financial'),
+            'internal server error',
+            500,
+        );
+      }
+
+      return wrapper.data(results, 'success update financial', 201);
+    } catch (error) {
+      console.error(error);
+      return wrapper.error(
+          new BadRequestError('failed update financial'),
+          'internal server error',
+          500,
+      );
+    }
+  }
 }
 
 module.exports = UpsertClass;

@@ -181,6 +181,27 @@ async function getFinancialsSummary(req, res) {
   return sendResponse(await postRequest(validatePayload));
 };
 
+async function updateBulkFinancials(req, res) {
+  const validatePayload = validator.isValidPayload(req.payload, commandModel.updateFinancialBulkModel);
+
+  const postRequest = async (result) => {
+    if (result.err) {
+      return result;
+    }
+    return upsertUsecase.updateBulkFinancials({data: result.data, mongo: req.mongo, auth: req.auth});
+  };
+
+  const sendResponse = async (result) => {
+    if (result.err) {
+      return wrapper.response(res, 'fail', result, result.message);
+    }
+
+    return wrapper.response(res, 'success', result, result.message, 200);
+  };
+  return sendResponse(await postRequest(validatePayload));
+};
+
+
 const handlers = [
   {
     method: 'GET',
@@ -234,6 +255,14 @@ const handlers = [
     method: 'GET',
     path: '/financials/my/summary',
     handler: getFinancialsSummary,
+    options: {
+      auth: 'auth-catatmak',
+    },
+  },
+  {
+    method: 'PUT',
+    path: '/financials/bulk',
+    handler: updateBulkFinancials,
     options: {
       auth: 'auth-catatmak',
     },
