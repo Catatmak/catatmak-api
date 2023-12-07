@@ -4,7 +4,7 @@ const wrapper = require('../../../utils/wrapper');
 const {decryptDataAES256Cbc} = require('../../../utils/crypsi');
 const helpers = require('../../../utils/helpers');
 const {ObjectId} = require('mongodb');
-const {format, parse, isValid, startOfWeek, endOfWeek} = require('date-fns');
+const {format, parse, isValid, startOfWeek, endOfWeek, isBefore, isAfter, startOfMonth} = require('date-fns');
 const idLocale = require('date-fns/locale/id');
 
 class GetClass {
@@ -272,42 +272,76 @@ class GetClass {
       data[index].price = decryptDataAES256Cbc(data[index].price);
     }
 
-    const response = {
-      total_today: 0,
-      total_weekly: 0,
-      total_monthly: 0,
-    };
+    if (type === 'outcome') {
+      const response = {
+        total_today: 0,
+        total_weekly: 0,
+        total_monthly: 0,
+      };
 
-    // Calculate totals
-    const today = new Date();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay());
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      // Calculate totals
+      const today = new Date();
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - today.getDay());
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    data.forEach((item) => {
-      const itemDate = new Date(item.created_at);
-      // Check if the item is from today
-      if (itemDate.toDateString() === today.toDateString()) {
-        response.total_today += parseInt(item.price);
-      }
+      data.forEach((item) => {
+        const itemDate = new Date(item.created_at);
+        // Check if the item is from today
+        if (itemDate.toDateString() === today.toDateString()) {
+          response.total_today += parseInt(item.price);
+        }
 
-      // Check if the item is from this week
-      if (itemDate >= startOfWeek) {
-        response.total_weekly += parseInt(item.price);
-      }
+        // Check if the item is from this week
+        if (itemDate >= startOfWeek) {
+          response.total_weekly += parseInt(item.price);
+        }
 
-      // Check if the item is from this month
-      if (itemDate >= startOfMonth) {
-        response.total_monthly += parseInt(item.price);
-      }
-    });
+        // Check if the item is from this month
+        if (itemDate >= startOfMonth) {
+          response.total_monthly += parseInt(item.price);
+        }
+      });
 
-    // Assuming you want to format the totals as currency
-    response.total_today = helpers.formatToRupiah(response.total_today);
-    response.total_weekly = helpers.formatToRupiah(response.total_weekly);
-    response.total_monthly = helpers.formatToRupiah(response.total_monthly);
+      // Assuming you want to format the totals as currency
+      response.total_today = helpers.formatToRupiah(response.total_today);
+      response.total_weekly = helpers.formatToRupiah(response.total_weekly);
+      response.total_monthly = helpers.formatToRupiah(response.total_monthly);
 
-    return wrapper.data(response, `success get financials ${type} summary`, 200);
+      return wrapper.data(response, `success get financials ${type} summary`, 200);
+    }
+
+    if (type === 'income') {
+      const response = {
+        total_monthly_now: 0,
+        total_monthly_before: 0,
+      };
+
+      // Calculate totals
+      const today = new Date();
+
+      // Start of the current month
+      const startOfMonthDate = startOfMonth(today);
+
+      data.forEach((item) => {
+        const itemDate = item.created_at;
+
+        // Check if the item is from this month
+        if (isAfter(itemDate, startOfMonthDate)) {
+          response.total_monthly_now += parseInt(item.price);
+        }
+
+        // Check if the item is from last month
+        if (isBefore(itemDate, startOfMonthDate)) {
+          response.total_monthly_before += parseInt(item.price);
+        }
+      });
+
+      response.total_monthly_now = helpers.formatToRupiah(response.total_monthly_now);
+      response.total_monthly_before = helpers.formatToRupiah(response.total_monthly_before);
+
+      return wrapper.data(response, `success get financials ${type} summary`, 200);
+    }
   }
 }
 
