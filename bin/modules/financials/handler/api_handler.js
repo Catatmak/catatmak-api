@@ -108,7 +108,6 @@ async function getAllFinancials(req, res) {
   return sendResponse(await postRequest(validatePayload));
 };
 
-
 async function getFinancialsTotal(req, res) {
   const payload = {
     ...req.query,
@@ -151,6 +150,30 @@ async function getFinancialById(req, res) {
   const sendResponse = async (result) => {
     if (result.err) {
       return wrapper.response(res, 'fail', result, result.message, result.code);
+    }
+
+    return wrapper.response(res, 'success', result, result.message, 200);
+  };
+  return sendResponse(await postRequest(validatePayload));
+};
+
+async function getFinancialsSummary(req, res) {
+  const payload = {
+    ...req.query,
+  };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getWithType);
+
+  const postRequest = async (result) => {
+    if (result.err) {
+      return result;
+    }
+
+    return getUsecase.getFinancialsSummary({...result.data, mongo: req.mongo, auth: req.auth});
+  };
+
+  const sendResponse = async (result) => {
+    if (result.err) {
+      return wrapper.response(res, 'fail', result, result.message);
     }
 
     return wrapper.response(res, 'success', result, result.message, 200);
@@ -203,6 +226,14 @@ const handlers = [
     method: 'DELETE',
     path: '/financials/{id}',
     handler: deleteFinancial,
+    options: {
+      auth: 'auth-catatmak',
+    },
+  },
+  {
+    method: 'GET',
+    path: '/financials/my/summary',
+    handler: getFinancialsSummary,
     options: {
       auth: 'auth-catatmak',
     },

@@ -137,6 +137,70 @@ class GetClass {
       return wrapper.data(error, 'failed get detail financial', 500);
     }
   }
+
+  async getFinancialsSummary(payload) {
+    const {phone} = payload.auth.credentials;
+    const {type} = payload;
+    const collection = payload.mongo.db.collection('financials');
+
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const endOfYear = new Date(now.getFullYear(), 11, 31);
+
+    const data = await collection.aggregate([
+      {
+        $match: {
+          phone: phone,
+          type: type,
+          created_at: {
+            $gte: startOfYear,
+            $lte: endOfYear,
+          },
+        },
+      },
+    ]).toArray();
+
+    for (let index = 0; index < data.length; index++) {
+      data[index].price = decryptDataAES256Cbc(data[index].price);
+    }
+
+    const response = {
+      total_today: 0,
+      total_weekly: 0,
+      total_monthly: 0,
+    };
+
+    // Calculate totals
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    data.forEach((item) => {
+      const itemDate = new Date(item.created_at);
+      // Check if the item is from today
+      if (itemDate.toDateString() === today.toDateString()) {
+        response.total_today += parseInt(item.price);
+      }
+
+      // Check if the item is from this week
+      if (itemDate >= startOfWeek) {
+        response.total_weekly += parseInt(item.price);
+      }
+
+      // Check if the item is from this month
+      if (itemDate >= startOfMonth) {
+        response.total_monthly += parseInt(item.price);
+      }
+    });
+
+    // Assuming you want to format the totals as currency
+    response.total_today = helpers.formatToRupiah(response.total_today);
+    response.total_weekly = helpers.formatToRupiah(response.total_weekly);
+    response.total_monthly = helpers.formatToRupiah(response.total_monthly);
+
+    return wrapper.data(response, `success get financials ${type} summary`, 200);
+  }
 }
 
 module.exports = GetClass;

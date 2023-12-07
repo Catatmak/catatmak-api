@@ -18,9 +18,14 @@ const getAllQuery = joi.object({
   type: joi.string().optional().allow(''),
 });
 
+const getWithType = joi.object({
+  type: joi.string().valid('income', 'outcome').required(),
+});
+
 module.exports = {
   pagination,
   id,
   getAllQuery,
+  getWithType,
 };
 
