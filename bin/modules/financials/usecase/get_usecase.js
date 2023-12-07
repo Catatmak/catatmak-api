@@ -4,7 +4,7 @@ const wrapper = require('../../../utils/wrapper');
 const {decryptDataAES256Cbc} = require('../../../utils/crypsi');
 const helpers = require('../../../utils/helpers');
 const {ObjectId} = require('mongodb');
-const {format} = require('date-fns');
+const {format, parse, isValid} = require('date-fns');
 
 class GetClass {
   async getAllFinancials(payload) {
@@ -55,24 +55,15 @@ class GetClass {
           $gte: startOfYear,
           $lt: endOfYear,
         };
-      } else if (date === 'custom') {
-        if (startDate || endDate) {
-          const setDate = new Date(startDate);
-          let targetDate = new Date(endDate);
+      } else if (date === 'custom' && (startDate || endDate)) {
+        const parseDate = (dateString) => {
+          const parsedDate = parse(dateString, 'dd-MM-yyyy', new Date());
+          return isValid(parsedDate) ? parsedDate : null;
+        };
 
-          setDate.setHours(setDate.getHours() - 7);
-
-          if (endDate) {
-            targetDate.setDate(targetDate.getDate() + 1);
-            targetDate.setHours(targetDate.getHours() - 7);
-          } else {
-            targetDate = new Date();
-            targetDate.setDate(targetDate.getDate() + 1);
-            targetDate.setUTCHours(17, 0, 0, 0);
-          }
-
+        if (startDate && endDate) {
           pipeline.push({
-            $match: {created_at: {$gte: setDate, $lt: targetDate}},
+            $match: {created_at: {$gte: parseDate(startDate), $lt: parseDate(endDate)}},
           });
         }
       }
@@ -89,7 +80,7 @@ class GetClass {
         return wrapper.data([], 'data not found', 200);
       }
 
-      if (date === 'today') {
+      if (date === 'today' || date === 'custom') {
         const result = [];
 
         data.map((item) => {
@@ -127,9 +118,11 @@ class GetClass {
           // If the week is not in the results array, initialize it
           if (!weekResult) {
             weekResult = {
-              date: formattedWeekDateRange,
+              title: formattedWeekDateRange,
               sum: 0,
               count: 0,
+              weekStartDate: new Date(weekStartDate).toISOString().split('T')[0],
+              weekEndDate: new Date(weekEndDate).toISOString().split('T')[0],
             };
             weeklyResults.push(weekResult);
           }
