@@ -79,38 +79,26 @@ class GetClass {
 
   async getFinancialsTotal(payload) {
     try {
-      const {startDate, endDate} = payload;
       const {phone} = payload.auth.credentials;
       const collection = payload.mongo.db.collection('financials');
 
-      const pipeline = [];
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-      if (startDate || endDate) {
-        const setDate = new Date(startDate);
-        let targetDate = new Date(endDate);
-
-        setDate.setHours(setDate.getHours() - 7);
-
-        if (endDate) {
-          targetDate.setDate(targetDate.getDate() + 1);
-          targetDate.setHours(targetDate.getHours() - 7);
-        } else {
-          targetDate = new Date();
-          targetDate.setDate(targetDate.getDate() + 1);
-          targetDate.setUTCHours(17, 0, 0, 0);
-        }
-
-        pipeline.push({
+      const dataOfMonth = await collection.aggregate([
+        {
           $match: {
-            created_at: {$gte: setDate, $lt: targetDate},
             phone: phone,
+            created_at: {
+              $gte: startOfMonth,
+              $lte: endOfMonth,
+            },
           },
-        });
-      }
+        },
+      ]).toArray();
 
-      const data = await collection.aggregate(pipeline).toArray();
-
-      const result = data.reduce((accumulator, item) => {
+      const result = dataOfMonth.reduce((accumulator, item) => {
         const decryptedPrice = decryptDataAES256Cbc(item.price);
 
         if (item.type === 'income') {
