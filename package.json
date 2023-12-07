@@ -20,6 +20,7 @@
   "dependencies": {
     "@hapi/hapi": "^21.3.0",
     "crypsi": "^1.0.7",
+    "date-fns": "^2.30.0",
     "dotenv": "^16.3.1",
     "hapi-mongodb": "^10.0.3",
     "joi": "^14.3.1",

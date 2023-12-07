@@ -4,52 +4,84 @@ const wrapper = require('../../../utils/wrapper');
 const {decryptDataAES256Cbc} = require('../../../utils/crypsi');
 const helpers = require('../../../utils/helpers');
 const {ObjectId} = require('mongodb');
+const {format} = require('date-fns');
 
 class GetClass {
   async getAllFinancials(payload) {
     try {
-      const {startDate, endDate, type} = payload;
+      const {startDate, endDate, date, type} = payload;
       const {phone} = payload.auth.credentials;
       const collection = payload.mongo.db.collection('financials');
 
       const pipeline = [];
 
-      if (startDate || endDate) {
-        const setDate = new Date(startDate);
-        let targetDate = new Date(endDate);
+      const matchStage = {
+        $match: {
+          phone,
+        },
+      };
 
-        setDate.setHours(setDate.getHours() - 7);
+      if (date === 'today') {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999);
+        matchStage.$match.created_at = {
+          $gte: today,
+          $lt: endOfToday,
+        };
+      } else if (date === 'weekly') {
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1); // Set to the first day of the month
+        startOfMonth.setHours(0, 0, 0, 0);
 
-        if (endDate) {
-          targetDate.setDate(targetDate.getDate() + 1);
-          targetDate.setHours(targetDate.getHours() - 7);
-        } else {
-          targetDate = new Date();
-          targetDate.setDate(targetDate.getDate() + 1);
-          targetDate.setUTCHours(17, 0, 0, 0);
+        const endOfMonth = new Date(startOfMonth);
+        endOfMonth.setMonth(startOfMonth.getMonth() + 1); // Set to the first day of the next month
+        endOfMonth.setHours(0, 0, 0, 0);
+
+        matchStage.$match.type = type;
+        matchStage.$match.created_at = {
+          $gte: startOfMonth,
+          $lt: endOfMonth,
+        };
+      } else if (date === 'monthly') {
+        const startOfYear = new Date(new Date().getFullYear(), 0, 1); // Set to the first day of the year
+        startOfYear.setHours(0, 0, 0, 0);
+
+        const endOfYear = new Date(new Date().getFullYear() + 1, 0, 0); // Set to the last day of the year
+        endOfYear.setHours(0, 0, 0, 0);
+
+        matchStage.$match.created_at = {
+          $gte: startOfYear,
+          $lt: endOfYear,
+        };
+      } else if (date === 'custom') {
+        if (startDate || endDate) {
+          const setDate = new Date(startDate);
+          let targetDate = new Date(endDate);
+
+          setDate.setHours(setDate.getHours() - 7);
+
+          if (endDate) {
+            targetDate.setDate(targetDate.getDate() + 1);
+            targetDate.setHours(targetDate.getHours() - 7);
+          } else {
+            targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() + 1);
+            targetDate.setUTCHours(17, 0, 0, 0);
+          }
+
+          pipeline.push({
+            $match: {created_at: {$gte: setDate, $lt: targetDate}},
+          });
         }
-
-        pipeline.push({
-          $match: {created_at: {$gte: setDate, $lt: targetDate}},
-        });
       }
 
-      if (type) {
-        pipeline.push({
-          $match: {type: type},
-        });
-      }
-
-      pipeline.push(
-          {
-            $match: {phone},
-          },
-          {
-            $sort: {
-              created_at: -1,
-            },
-          },
-      );
+      pipeline.push(matchStage, {
+        $sort: {
+          created_at: -1,
+        },
+      });
 
       const data = await collection.aggregate(pipeline).toArray();
 
@@ -57,20 +89,60 @@ class GetClass {
         return wrapper.data([], 'data not found', 200);
       }
 
-      const result = [];
+      if (date === 'today') {
+        const result = [];
 
-      data.map((item) => {
-        result.push({
-          id: item._id,
-          title: decryptDataAES256Cbc(item.title),
-          price: helpers.formatToRupiah(decryptDataAES256Cbc(item.price)),
-          type: item.type,
-          category: item.category ? item.category : 'Tidak Terkategori',
-          created_at: item.created_at,
+        data.map((item) => {
+          result.push({
+            id: item._id,
+            title: decryptDataAES256Cbc(item.title),
+            price: helpers.formatToRupiah(decryptDataAES256Cbc(item.price)),
+            type: item.type,
+            category: item.category ? item.category : 'Tidak Terkategori',
+            created_at: item.created_at,
+          });
         });
-      });
 
-      return wrapper.data(result, 'success get financials', 200);
+        return wrapper.data(result, 'success get financials', 200);
+      }
+
+      if (date === 'weekly') {
+        const weeklyResults = [];
+
+        // Iterate through each transaction in the data
+        data.forEach((transaction) => {
+          const transactionDate = new Date(transaction.created_at);
+          const weekStartDate = new Date(transactionDate.getFullYear(), transactionDate.getMonth(), transactionDate.getDate() - transactionDate.getDay());
+          const weekEndDate = new Date(weekStartDate);
+          weekEndDate.setDate(weekEndDate.getDate() + 6);
+
+          // Format the week start and end dates using date-fns
+          const formattedWeekStartDate = format(weekStartDate, 'dd MMMM yyyy', {locale: require('date-fns/locale/id')});
+          const formattedWeekEndDate = format(weekEndDate, 'dd MMMM yyyy', {locale: require('date-fns/locale/id')});
+          const formattedWeekDateRange = `${formattedWeekStartDate} - ${formattedWeekEndDate}`;
+
+          // Find the corresponding week in the results array
+          let weekResult = weeklyResults.find((week) => week.date === formattedWeekDateRange);
+
+          // If the week is not in the results array, initialize it
+          if (!weekResult) {
+            weekResult = {
+              date: formattedWeekDateRange,
+              sum: 0,
+              count: 0,
+            };
+            weeklyResults.push(weekResult);
+          }
+
+          // Update the sum and count for the corresponding week
+          weekResult.sum += parseFloat(decryptDataAES256Cbc(transaction.price));
+          weekResult.count += 1;
+        });
+
+        return wrapper.data(weeklyResults, 'success get financials', 200);
+      }
+
+      return wrapper.data(data, 'success get financials', 200);
     } catch (error) {
       console.log(error);
       return wrapper.data(error, 'Gagal mengambil data buku', 500);
