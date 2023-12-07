@@ -1,5 +1,5 @@
 /* eslint-disable max-len */
-const data = (data, description = '', code = 200) => ({err: null, message: description, data, code});
+const data = (data, description = '', code = 200, meta) => ({err: null, message: description, data, code, meta});
 
 const paginationData = (data, meta) => ({err: null, data, meta});
 
@@ -19,6 +19,10 @@ const response = (res, type, result, message = '', code) => {
   if (type == 'fail') {
     delete objResponse.data;
     objResponse.message = result.err.message;
+  }
+
+  if (result.meta) {
+    objResponse.meta = result.meta;
   }
 
   return res.response(objResponse).code(result.code);

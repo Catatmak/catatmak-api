@@ -85,6 +85,7 @@ class GetClass {
 
       if (date === 'today' || date === 'custom') {
         const result = [];
+        let totalOutcomeToday = 0;
 
         data.map((item) => {
           result.push({
@@ -95,9 +96,17 @@ class GetClass {
             category: item.category ? item.category : 'Tidak Terkategori',
             created_at: item.created_at,
           });
+
+          if (item.type == 'outcome') {
+            totalOutcomeToday += parseInt(decryptDataAES256Cbc(item.price));
+          }
         });
 
-        return wrapper.data(result, 'success get financials', 200);
+        const metaData = {
+          totalOutcomeToday: helpers.formatToRupiah(totalOutcomeToday),
+        };
+
+        return wrapper.data(result, 'success get financials', 200, metaData);
       }
 
       if (date === 'weekly') {

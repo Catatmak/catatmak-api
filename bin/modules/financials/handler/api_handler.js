@@ -103,7 +103,7 @@ async function getAllFinancials(req, res) {
       return wrapper.response(res, 'fail', result, result.message);
     }
 
-    return wrapper.response(res, 'success', result, result.message, 200);
+    return wrapper.response(res, 'success', result, result.message, 200, result.meta);
   };
   return sendResponse(await postRequest(validatePayload));
 };
