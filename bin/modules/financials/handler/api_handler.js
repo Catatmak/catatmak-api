@@ -88,6 +88,7 @@ async function getAllFinancials(req, res) {
   const payload = {
     ...req.query,
   };
+
   const validatePayload = validator.isValidPayload(payload, queryModel.getWithDate);
 
   const postRequest = async (result) => {

@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /* eslint-disable max-len */
 /* eslint-disable require-jsdoc */
 const wrapper = require('../../../utils/wrapper');
@@ -31,7 +32,7 @@ class GetClass {
           $gte: today,
           $lt: endOfToday,
         };
-      } else if (date === 'weekly') {
+      } else if (date === 'weekly' || date === 'daily') {
         const startOfMonth = new Date();
         startOfMonth.setDate(1); // Set to the first day of the month
         startOfMonth.setHours(0, 1, 0, 0); // Set to 00:01
@@ -187,6 +188,43 @@ class GetClass {
         return wrapper.data(monthlyResults, 'success get financials', 200);
       }
 
+      if (date === 'daily') {
+        const dailyResults = [];
+
+        // Iterate through each transaction in the data
+        data.forEach((transaction) => {
+          const transactionDate = new Date(transaction.created_at);
+          const dayStartDate = new Date(transactionDate.getFullYear(), transactionDate.getMonth(), transactionDate.getDate());
+          const dayEndDate = new Date(transactionDate.getFullYear(), transactionDate.getMonth(), transactionDate.getDate() + 1); // Set to the next day
+
+          // Manually concatenate the day name and date
+          const dayName = transactionDate.toLocaleDateString('id-ID', {weekday: 'long'}); // Get the day name in Indonesian
+          const formattedDayDate = `${dayName}, ${format(dayStartDate, 'dd MMMM yyyy', {locale: require('date-fns/locale/id')})}`;
+
+          // Find the corresponding day in the results array
+          let dayResult = dailyResults.find((day) => day.title === formattedDayDate);
+
+          // If the day is not in the results array, initialize it
+          if (!dayResult) {
+            dayResult = {
+              title: formattedDayDate,
+              sum: 0,
+              count: 0,
+              startDate: format(dayStartDate, 'dd-MM-yyyy', {locale: require('date-fns/locale/id')}),
+              endDate: format(dayEndDate, 'dd-MM-yyyy', {locale: require('date-fns/locale/id')}),
+            };
+            dailyResults.push(dayResult);
+          }
+
+          // Update the sum and count for the corresponding day
+          dayResult.sum += parseFloat(decryptDataAES256Cbc(transaction.price));
+          dayResult.count += 1;
+        });
+
+
+        return wrapper.data(dailyResults, 'success get financials', 200);
+      }
+
       return wrapper.data(data, 'success get financials', 200);
     } catch (error) {
       console.log(error);
@@ -286,6 +324,9 @@ class GetClass {
         total_today: 0,
         total_weekly: 0,
         total_monthly: 0,
+        count_today: 0,
+        count_weekly: 0,
+        count_monthly: 0,
       };
 
       // Calculate totals
@@ -299,31 +340,49 @@ class GetClass {
         // Check if the item is from today
         if (itemDate.toDateString() === today.toDateString()) {
           response.total_today += parseInt(item.price);
+          response.count_today += 1;
         }
 
         // Check if the item is from this week
         if (itemDate >= startOfWeek) {
           response.total_weekly += parseInt(item.price);
+          response.count_weekly += 1;
         }
 
         // Check if the item is from this month
         if (itemDate >= startOfMonth) {
           response.total_monthly += parseInt(item.price);
+          response.count_monthly += 1;
         }
       });
 
-      // Assuming you want to format the totals as currency
-      response.total_today = helpers.formatToRupiah(response.total_today);
-      response.total_weekly = helpers.formatToRupiah(response.total_weekly);
-      response.total_monthly = helpers.formatToRupiah(response.total_monthly);
+      const result = [
+        {
+          title: 'Harian',
+          total: helpers.formatToRupiah(response.total_today),
+          count: response.count_today,
+        },
+        {
+          title: 'Mingguan',
+          total: helpers.formatToRupiah(response.total_weekly),
+          count: response.count_weekly,
+        },
+        {
+          title: 'Bulanan',
+          total: helpers.formatToRupiah(response.total_monthly),
+          count: response.count_monthly,
+        },
+      ];
 
-      return wrapper.data(response, `success get financials ${type} summary`, 200);
+      return wrapper.data(result, `success get financials ${type} summary`, 200);
     }
 
     if (type === 'income') {
       const response = {
         total_monthly_now: 0,
         total_monthly_before: 0,
+        count_monthly_now: 0,
+        count_monthly_before: 0,
       };
 
       // Calculate totals
@@ -338,18 +397,30 @@ class GetClass {
         // Check if the item is from this month
         if (isAfter(itemDate, startOfMonthDate)) {
           response.total_monthly_now += parseInt(item.price);
+          response.count_monthly_now += 1;
         }
 
         // Check if the item is from last month
         if (isBefore(itemDate, startOfMonthDate)) {
           response.total_monthly_before += parseInt(item.price);
+          response.count_monthly_before += 1;
         }
       });
 
-      response.total_monthly_now = helpers.formatToRupiah(response.total_monthly_now);
-      response.total_monthly_before = helpers.formatToRupiah(response.total_monthly_before);
+      const result = [
+        {
+          title: 'Bulan Ini',
+          total: helpers.formatToRupiah(response.total_monthly_now),
+          count: response.count_monthly_now,
+        },
+        {
+          title: 'Bulan Kemarin',
+          total: helpers.formatToRupiah(response.total_monthly_before),
+          count: response.count_monthly_before,
+        },
+      ];
 
-      return wrapper.data(response, `success get financials ${type} summary`, 200);
+      return wrapper.data(result, `success get financials ${type} summary`, 200);
     }
   }
 }

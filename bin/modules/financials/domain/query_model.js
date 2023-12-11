@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 const joi = require('joi');
 
 const pagination = joi.object({
@@ -23,7 +24,7 @@ const getWithType = joi.object({
 });
 
 const getWithDate = joi.object({
-  date: joi.string().valid('today', 'weekly', 'monthly', 'custom').required(),
+  date: joi.string().valid('today', 'daily', 'weekly', 'monthly', 'custom').required(),
   type: joi.string().valid('income', 'outcome').optional(),
   startDate: joi.string().optional().allow(''),
   endDate: joi.string().optional().allow(''),
