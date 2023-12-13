@@ -8,14 +8,14 @@ const wrapper = require('../../../utils/wrapper');
 async function processOCR(req, res) {
   const payload = {
     ...req.payload,
-    ...req.file,
+    file: req.payload.file,
   };
 
   const postRequest = async (result) => {
     if (result.err) {
       return result;
     }
-    return upsertUsecase.processOCR({...result.data, mongo: req.mongo, auth: req.auth});
+    return upsertUsecase.processOCR({payload, mongo: req.mongo, auth: req.auth});
   };
 
   const sendResponse = async (result) => {
@@ -35,10 +35,13 @@ const handlers = [
     handler: processOCR,
     options: {
       auth: 'auth-catatmak',
-    },
-    payload: {
-      output: 'file',
-      allow: 'multipart/form-data',
+      payload: {
+        maxBytes: 209715200,
+        output: 'file',
+        parse: true,
+        multipart: true, // <-- this fixed the media type error
+
+      },
     },
   },
 ];

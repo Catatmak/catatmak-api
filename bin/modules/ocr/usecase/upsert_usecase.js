@@ -3,60 +3,111 @@
 /* eslint-disable require-jsdoc */
 const wrapper = require('../../../utils/wrapper');
 const fs = require('fs');
-const gconfig = require('../../../config/gcloud.json');
+const path = require('path');
+const {Storage} = require('@google-cloud/storage');
+const mindee = require('mindee');
 
 class UpsertClass {
   async processOCR(payload) {
     try {
-      const {file} = payload;
+      const {file} = payload.payload;
       const mindeeClc = payload.mongo.db.collection('mindee');
-      const mindeeAPIKey = mindeeClc.findOne({}).sort({limit: -1}).toArray();
+      const mindeeData = await mindeeClc.find({}).sort({limit: -1}).toArray();
+      let mindeeApi = '';
 
-      console.log(mindeeAPIKey);
+      if (!mindeeData) {
+        return wrapper.error(new BadRequestError('mindee api key is not found'), 'mindee api key is not found', 500);
+      }
+
+      if (mindeeData?.length > 0) {
+        mindeeApi = mindeeData[0].apiKey;
+      }
 
       const storage = new Storage({
-        keyFilename: gconfig, // Replace with your service account key file
+        keyFilename: path.join(__dirname, '../../../config/gcloud.json'),
         projectId: 'catatmak',
       });
 
-      const fileContent = fs.readFileSync(file.path);
       const destinationFileName = `images/${file.filename}`;
       const uploadStorage = await storage.bucket('catatmak-private').upload(file.path, {
         destination: destinationFileName,
       });
 
-      if (!uploadStorage) {
-        return wrapper.error(new BadRequestError('failed insert financial'), 'internal server error', 500);
+      if (!uploadStorage && uploadStorage.length < 0) {
+        return wrapper.error(uploadStorage, 'internal server error', 500);
       }
 
-      console.log(uploadStorage)
+      // Set the expiration time for the signed URL (in seconds)
+      const expiration = 3000; // 5 minutes
 
-      fs.unlinkSync(file.path);
+      // Generate a signed URL
+      const signedUrl = await storage.bucket('catatmak-private').file(destinationFileName).getSignedUrl({
+        action: 'read', // specify the action, e.g., 'read', 'write', 'delete'
+        expires: Date.now() + expiration * 1000, // expiration time in milliseconds
+      });
 
-      const mindeeApiResponse = await axios.post(
-          mindeeApiEndpoint,
-          fileContent,
-          {
-            headers: {
-              'Content-Type': 'image/jpeg', // Adjust the content type based on your image type
-              'Authorization': `Bearer ${mindeeAPIKey}`,
-            },
-          },
+
+      const mindeeClient = new mindee.Client({apiKey: mindeeApi});
+
+      // Load a file from disk
+      const inputSource = mindeeClient.docFromPath(file.path);
+
+      // Parse the file
+      const apiResponsePromise = mindeeClient.parse(
+          mindee.product.ReceiptV5,
+          inputSource,
       );
 
-      if (mindeeApiResponse) {
-        // do upsert to minus limit here
+      const apiResponse = await apiResponsePromise; // Wait for the promise to resolve
+
+      if (!apiResponse) {
+        return wrapper.data([], 'success insert financial', 201);
       }
 
-      // do modeling responses
+      const resultData = [];
 
-      console.log('Mindee API Response:', mindeeApiResponse.data);
+      const resp = apiResponse;
+      const data = {
+        line_items: resp.document.inference.prediction.lineItems,
+        supplier_name: resp.document.inference.prediction.supplierName,
+      };
 
+      if (data.line_items.length > 0) {
+        data.line_items.map((item) => {
+          const supplierName = data.supplier_name && data.supplier_name.value ? `[${data.supplier_name.value}] ${item.description}` : item.description;
 
-      return wrapper.data(mindeeApiResponse.data, 'success insert financial', 201);
+          const doc = {
+            outcome_name: supplierName,
+            category: '',
+            price: item.totalAmount < 100 ? `${item.totalAmount}000`: item.totalAmount,
+            image_url: signedUrl[0],
+            created_at: new Date(),
+            updated_at: new Date(),
+            image_name: destinationFileName,
+          };
+
+          resultData.push(doc);
+        });
+      } else {
+        resp.document.inference.prediction.totalAmount = Math.floor(resp.document.inference.prediction.totalAmount);
+
+        const doc = {
+          outcome_name: data.supplier_name?.value ? data.supplier_name?.value : 'Transaksi',
+          category: '',
+          price: resp.document.inference.prediction.totalAmount < 100 ? `${resp.document.inference.prediction.totalAmount}000`: resp.document.inference.prediction.totalAmount,
+          image_url: signedUrl[0],
+          created_at: new Date(),
+          updated_at: new Date(),
+          image_name: destinationFileName,
+        };
+        resultData.push(doc);
+      }
+      fs.unlinkSync(file.path);
+
+      return wrapper.data(resultData, 'success generate ocr', 201);
     } catch (error) {
       console.log(error);
-      return wrapper.error(new BadRequestError('failed insert financial'), 'internal server error', 500);
+      return wrapper.error(error, 'internal server error', 500);
     }
   }
 }
