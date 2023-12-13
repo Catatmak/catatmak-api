@@ -5,8 +5,10 @@ const wrapper = require('../../../utils/wrapper');
 const {decryptDataAES256Cbc} = require('../../../utils/crypsi');
 const helpers = require('../../../utils/helpers');
 const {ObjectId} = require('mongodb');
-const {format, parse, isValid, startOfWeek, endOfWeek, isBefore, isAfter, startOfMonth} = require('date-fns');
+const {format, parse, isValid, startOfWeek, endOfWeek, isBefore, isAfter, startOfMonth, endOfDay, startOfDay} = require('date-fns');
 const idLocale = require('date-fns/locale/id');
+const {Storage} = require('@google-cloud/storage');
+const path = require('path');
 
 class GetClass {
   async getAllFinancials(payload) {
@@ -24,10 +26,10 @@ class GetClass {
       };
 
       if (date === 'today') {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const endOfToday = new Date();
-        endOfToday.setHours(23, 59, 59, 999);
+        const today = startOfDay(new Date());
+        const endOfToday = endOfDay(new Date());
+
+
         matchStage.$match.created_at = {
           $gte: today,
           $lt: endOfToday,
@@ -96,6 +98,7 @@ class GetClass {
             type: item.type,
             category: item.category ? item.category : 'Tidak Terkategori',
             created_at: item.created_at,
+            image_name: item.image_name ? item.image_name : '',
           });
 
           if (item.type == 'outcome') {
@@ -283,10 +286,36 @@ class GetClass {
       const data = await collection.findOne({_id: ObjectId(id)});
 
       if (!data) {
-        return wrapper.error(true, 'failed get detail financial', 500);
+        return wrapper.error({}, 'failed get detail financial', 200);
       }
 
-      return wrapper.data(data, 'success get detail financial', 200);
+      const storage = new Storage({
+        keyFilename: path.join(__dirname, '../../../config/gcloud.json'),
+        projectId: 'catatmak',
+      });
+
+      // Set the expiration time for the signed URL (in seconds)
+      const expiration = 3000; // 5 minutes
+
+      // Generate a signed URL
+      const signedUrl = await storage.bucket('catatmak-private').file(data.image_name).getSignedUrl({
+        action: 'read', // specify the action, e.g., 'read', 'write', 'delete'
+        expires: Date.now() + expiration * 1000, // expiration time in milliseconds
+      });
+
+      const response = {
+        id: data._id,
+        title: decryptDataAES256Cbc(data.title),
+        price: decryptDataAES256Cbc(data.price),
+        type: data.type,
+        category: data.category,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        image_name: data.image_name ? data.image_name : '',
+        image_url: signedUrl[0],
+      };
+
+      return wrapper.data(response, 'success get detail financial', 200);
     } catch (error) {
       console.log(error);
       return wrapper.data(error, 'failed get detail financial', 500);

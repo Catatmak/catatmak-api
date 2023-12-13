@@ -54,11 +54,13 @@ const createFinancialModel = joi.object({
 });
 
 const updateFinancialModel = joi.object({
-  id: joi.string().required(),
+  id: joi.string().optional(),
   title: joi.string().optional(),
   type: joi.string().optional(),
   price: joi.string().optional(),
-  category: joi.string().optional(),
+  category: joi.string().optional().allow(''),
+  image_url: joi.string().optional().allow(''),
+  image_name: joi.string().optional().allow(''),
   created_at: joi.date().optional(),
 });
 

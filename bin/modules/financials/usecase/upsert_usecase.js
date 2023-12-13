@@ -92,8 +92,8 @@ class UpsertClass {
       const updates = [];
 
       for (const financial of payload.data) {
-        const {id, title, category, price, created_at, type} = financial;
-        const filter = {_id: ObjectId(id), phone: phone};
+        const {id, title, category, price, created_at, type, image_name, image_url} = financial;
+        let filter = {_id: ObjectId(id), phone: phone};
 
         const update = {
           $set: {
@@ -101,25 +101,23 @@ class UpsertClass {
             price: encyptDataAES256Cbc(price),
             type: type,
             category: category,
-            created_at: created_at,
+            created_at: created_at ? created_at : new Date(),
+            image_name: image_name,
+            image_url: image_url,
             updated_at: created_at ? created_at : new Date(),
           },
         };
 
-        updates.push(collection.updateOne(filter, update));
+        console.log(update);
+
+        if (!id) {
+          filter = {};
+        }
+
+        updates.push(collection.updateOne(filter, update, {upsert: true}));
       }
 
       const results = await Promise.all(updates);
-
-      const modifiedCount = results.reduce((acc, result) => acc + result.modifiedCount, 0);
-
-      if (modifiedCount !== payload.data.length) {
-        return wrapper.error(
-            new BadRequestError('failed update financial'),
-            'internal server error',
-            500,
-        );
-      }
 
       return wrapper.data(results, 'success update financial', 201);
     } catch (error) {

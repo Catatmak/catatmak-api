@@ -77,12 +77,11 @@ class UpsertClass {
           const supplierName = data.supplier_name && data.supplier_name.value ? `[${data.supplier_name.value}] ${item.description}` : item.description;
 
           const doc = {
-            outcome_name: supplierName,
+            title: supplierName,
+            type: 'outcome',
             category: '',
-            price: item.totalAmount < 100 ? `${item.totalAmount}000`: item.totalAmount,
+            price: item.totalAmount < 100 ? `${item.totalAmount}000`: item.totalAmount.toString(),
             image_url: signedUrl[0],
-            created_at: new Date(),
-            updated_at: new Date(),
             image_name: destinationFileName,
           };
 
@@ -92,12 +91,11 @@ class UpsertClass {
         resp.document.inference.prediction.totalAmount = Math.floor(resp.document.inference.prediction.totalAmount);
 
         const doc = {
-          outcome_name: data.supplier_name?.value ? data.supplier_name?.value : 'Transaksi',
+          title: data.supplier_name?.value ? data.supplier_name?.value : 'Transaksi',
+          type: 'outcome',
           category: '',
-          price: resp.document.inference.prediction.totalAmount < 100 ? `${resp.document.inference.prediction.totalAmount}000`: resp.document.inference.prediction.totalAmount,
+          price: resp.document.inference.prediction.totalAmount < 100 ? `${resp.document.inference.prediction.totalAmount}000`: resp.document.inference.prediction.totalAmount.toString(),
           image_url: signedUrl[0],
-          created_at: new Date(),
-          updated_at: new Date(),
           image_name: destinationFileName,
         };
         resultData.push(doc);
