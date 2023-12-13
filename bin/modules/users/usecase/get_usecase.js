@@ -13,8 +13,8 @@ class GetClass {
       const response = {
         id: data._id,
         phone: decryptDataAES256Cbc(data.phone),
-        name: data.name ? data.name : '',
-        email: data.email ? data.email : '',
+        name: data.name ? decryptDataAES256Cbc(data.name) : '',
+        email: data.email ? decryptDataAES256Cbc(data.email) : '',
         gender: data.gender ? data.gender : '',
         age: data.age ? data.age : '',
         membership: {
