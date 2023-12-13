@@ -1,10 +1,10 @@
 steps:
   # Build the container image
   - name: "gcr.io/cloud-builders/docker"
-    args: ["build", "-t", "gcr.io/$PROJECT_ID/catatmak-api", "."]
+    args: ["build", "-t", "gcr.io/catatmak/catatmak-api", "."]
   # Push the container image to Container Registry
   - name: "gcr.io/cloud-builders/docker"
-    args: ["push", "gcr.io/$PROJECT_ID/catatmak-api"]
+    args: ["push", "gcr.io/catatmak/catatmak-api"]
   # Deploy container image to Cloud Run
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: gcloud
@@ -13,9 +13,9 @@ steps:
       - "deploy"
       - "catatmak-api"
       - "--image"
-      - "gcr.io/$PROJECT_ID/catatmak-api"
+      - "gcr.io/catatmak/catatmak-api"
       - "--region"
-      - "us-central1"
+      - "asia-southeast2"
       - "--platform"
       - "managed"
       - "--allow-unauthenticated"
@@ -23,4 +23,4 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 images:
-  - "gcr.io/$PROJECT_ID/catatmak-api"
+  - "gcr.io/catatmak/catatmak-api"
