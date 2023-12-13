@@ -1,7 +1,9 @@
 const financialsHandler = require('../modules/financials/handler/api_handler');
 const reportsHandler = require('../modules/reports/handler/api_handler');
 const ocrHandler = require('../modules/ocr/handler/api_handler');
+const userHandler = require('../modules/users/handler/api_handler');
 
-const routes = [...financialsHandler, ...reportsHandler, ...ocrHandler];
+// eslint-disable-next-line max-len
+const routes = [...financialsHandler, ...reportsHandler, ...ocrHandler, ...userHandler];
 
 module.exports = routes;
