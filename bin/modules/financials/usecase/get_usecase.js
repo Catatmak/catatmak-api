@@ -29,7 +29,6 @@ class GetClass {
         const today = startOfDay(new Date());
         const endOfToday = endOfDay(new Date());
 
-
         matchStage.$match.created_at = {
           $gte: today,
           $lt: endOfToday,
@@ -110,7 +109,9 @@ class GetClass {
           totalOutcomeToday: helpers.formatToRupiah(totalOutcomeToday),
         };
 
-        return wrapper.data(result, 'success get financials', 200, metaData);
+        const sortedData = result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+        return wrapper.data(sortedData, 'success get financials', 200, metaData);
       }
 
       if (date === 'weekly') {

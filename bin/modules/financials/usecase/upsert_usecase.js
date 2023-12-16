@@ -6,7 +6,6 @@ const wrapper = require('../../../utils/wrapper');
 const {BadRequestError} = require('../../../utils/error');
 const {encyptDataAES256Cbc} = require('../../../utils/crypsi');
 const {ObjectId} = require('mongodb');
-
 class UpsertClass {
   async createFinancial(payload) {
     try {
@@ -39,7 +38,7 @@ class UpsertClass {
 
   async updateFinancial(payload) {
     try {
-      const {title, category, price, created_at, type, id} = payload;
+      const {title, category, price, type, id} = payload;
       const {phone} = payload.auth.credentials;
       const collection = payload.mongo.db.collection('financials');
 
@@ -50,8 +49,7 @@ class UpsertClass {
           price: encyptDataAES256Cbc(price),
           type: type,
           category: category,
-          created_at: created_at,
-          updated_at: created_at ? created_at : new Date(),
+          updated_at: new Date(),
         },
       };
 
@@ -89,11 +87,10 @@ class UpsertClass {
     try {
       const {phone} = payload.auth.credentials;
       const collection = payload.mongo.db.collection('financials');
-      const updates = [];
 
       for (const financial of payload.data) {
         const {id, title, category, price, created_at, type, image_name, image_url} = financial;
-        let filter = {_id: ObjectId(id), phone: phone};
+        const filter = {_id: ObjectId(id), phone: phone};
 
         const update = {
           $set: {
@@ -101,25 +98,31 @@ class UpsertClass {
             price: encyptDataAES256Cbc(price),
             type: type,
             category: category,
-            created_at: created_at ? created_at : new Date(),
             image_name: image_name,
             image_url: image_url,
+            created_at: created_at ? created_at : new Date(),
             updated_at: created_at ? created_at : new Date(),
           },
         };
 
-        console.log(update);
-
         if (!id) {
-          filter = {};
+          await collection.insertOne({
+            phone: phone,
+            title: encyptDataAES256Cbc(title),
+            price: encyptDataAES256Cbc(price),
+            type: type,
+            category: category,
+            image_name: image_name,
+            image_url: image_url,
+            created_at: new Date(),
+            updated_at: new Date(),
+          });
+        } else {
+          await collection.updateOne(filter, update, {upsert: true});
         }
-
-        updates.push(collection.updateOne(filter, update, {upsert: true}));
       }
 
-      const results = await Promise.all(updates);
-
-      return wrapper.data(results, 'success update financial', 201);
+      return wrapper.data({}, 'success update financial', 201);
     } catch (error) {
       console.error(error);
       return wrapper.error(
