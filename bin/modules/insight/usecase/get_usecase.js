@@ -59,8 +59,6 @@ class GetClass {
         return wrapper.data([], 'success get insight', 200);
       }
 
-      console.log(mlData);
-
       const insights = [
         helpers.wordingTotalExpensesInWeek(startOfLastWeekFormatted, endOfLastWeekFormatted, helpers.formatToRupiah(responseData.total_expenses_last_week)),
         helpers.wordingMostCategories(responseData.most_expensive_category, helpers.formatToRupiah(responseData.total_expenses_most_category)),
