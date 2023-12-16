@@ -14,6 +14,7 @@ class UpsertClass {
       const mindeeClc = payload.mongo.db.collection('mindee');
       const mindeeData = await mindeeClc.find({}).sort({limit: -1}).toArray();
       let mindeeApi = '';
+      let mindeeLimit = 0;
 
       if (!mindeeData) {
         return wrapper.error(new BadRequestError('mindee api key is not found'), 'mindee api key is not found', 500);
@@ -21,6 +22,7 @@ class UpsertClass {
 
       if (mindeeData?.length > 0) {
         mindeeApi = mindeeData[0].apiKey;
+        mindeeLimit = parseInt(mindeeData[0].limit);
       }
 
       const storage = new Storage({
@@ -59,6 +61,12 @@ class UpsertClass {
       );
 
       const apiResponse = await apiResponsePromise; // Wait for the promise to resolve
+
+      mindeeLimit = mindeeLimit -1;
+      const minusLimitMindee = await mindeeClc.updateOne({apiKey: mindeeApi}, {$set: {limit: mindeeLimit}});
+      if (!minusLimitMindee) {
+        console.log('failed update limit mindee');
+      }
 
       if (!apiResponse) {
         return wrapper.data([], 'success insert financial', 201);
