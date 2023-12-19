@@ -52,7 +52,7 @@ class GetClass {
       }
 
       data.map((item) => {
-        listTitle.push(item.title);
+        listTitle.push(decryptDataAES256Cbc(item.title));
         response.push({
           id: item._id,
           title: decryptDataAES256Cbc(item.title),
@@ -80,7 +80,7 @@ class GetClass {
       listCategory = mlData.data.predicted_categories;
 
       for (let index = 0; index < response.length; index++) {
-        response[index].category = listCategory[index];
+        response[index].category = listCategory[index] ?? 'Lainnya';
       }
 
       return wrapper.data(response, 'success get uncategorize', 200);
