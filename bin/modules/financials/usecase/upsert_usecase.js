@@ -29,7 +29,7 @@ class UpsertClass {
         return wrapper.error(new BadRequestError('failed insert financial'), 'internal server error', 500);
       }
 
-      return wrapper.data(data, 'success insert financial', 201);
+      return wrapper.data(data, 'Berhasil Simpan Data 😎', 201);
     } catch (error) {
       console.log(error);
       return wrapper.error(new BadRequestError('failed insert financial'), 'internal server error', 500);
@@ -58,7 +58,7 @@ class UpsertClass {
         return wrapper.error(new BadRequestError('failed update financial'), 'internal server error', 500);
       }
 
-      return wrapper.data(result, 'success update financial', 201);
+      return wrapper.data(result, 'Berhasil Update Data 😎', 201);
     } catch (error) {
       console.log(error);
       return wrapper.error(new BadRequestError('failed update financial'), 'internal server error', 500);
@@ -76,7 +76,7 @@ class UpsertClass {
         return wrapper.data(data, 'failed delete financial', 500);
       }
 
-      return wrapper.data(data, 'success delete financial', 200);
+      return wrapper.data(data, 'Berhasil Hapus Data 😎', 200);
     } catch (error) {
       console.log(error);
       return wrapper.data(error, 'failed delete financial', 500);
@@ -122,7 +122,7 @@ class UpsertClass {
         }
       }
 
-      return wrapper.data({}, 'success update financial', 201);
+      return wrapper.data({}, 'Berhasil Simpan Data 😎', 201);
     } catch (error) {
       console.error(error);
       return wrapper.error(

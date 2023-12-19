@@ -66,7 +66,13 @@ class GetClass {
         helpers.wordingPrediction(responseData.conclusion, helpers.formatToRupiah(responseData.total_predicted_expenses)),
       ].filter((n) => n);
 
-      return wrapper.data(helpers.shuffle(insights), 'success get insight', 200);
+      const responses = helpers.shuffle(insights);
+
+      if (responses.length < 1 || insights.length < 1) {
+        responses = [];
+      }
+
+      return wrapper.data(responses, 'success get insight', 200);
     } catch (error) {
       console.log(error);
       return wrapper.data({count: 0}, 'failed get insight', 500);
