@@ -35,11 +35,10 @@ class GetClass {
 
       data.map((item) => {
         response.push({
-          id: item._id,
           title: decryptDataAES256Cbc(item.title),
           price: decryptDataAES256Cbc(item.price),
           type: item.type,
-          category: item.category,
+          category: item.category ?? '',
           created_at: item.created_at,
           updated_at: item.updated_at,
         });
@@ -74,8 +73,8 @@ class GetClass {
 
       return wrapper.data(responses, 'success get insight', 200);
     } catch (error) {
-      console.log(error);
-      return wrapper.data({count: 0}, 'failed get insight', 500);
+      // console.log(error);
+      return wrapper.data([], 'failed get insight', 500);
     }
   }
 }
