@@ -53,8 +53,10 @@ class GetClass {
 
       const mlData = await axios.request(config);
 
+      console.log(config, mlData);
+
       const responseData = mlData.data;
-      if (!response) {
+      if (!responseData) {
         return wrapper.data([], 'success get insight', 200);
       }
 
