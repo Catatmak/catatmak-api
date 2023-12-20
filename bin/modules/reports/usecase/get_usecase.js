@@ -52,15 +52,7 @@ class GetClass {
       const data = await collection.aggregate(pipeline).toArray();
 
       if (data.length < 1) {
-        return wrapper.data({
-          status: false,
-          message: 'Chart data not available',
-          data: {
-            id: 'upss',
-            color: 'hsl(150, 70%, 50%)',
-            data: [],
-          },
-        }, 'success get financials', 404);
+        return wrapper.data([], 'success get financials', 200);
       }
 
       const groupedData = {};
@@ -96,7 +88,7 @@ class GetClass {
       return wrapper.data(finalResult, 'success get financials', 200);
     } catch (error) {
       console.log(error);
-      return wrapper.data(error, 'Gagal mengambil data buku', 500);
+      return wrapper.data([], 'Gagal mengambil data buku', 500);
     }
   }
 
@@ -145,15 +137,7 @@ class GetClass {
       const data = await collection.aggregate(pipeline).toArray();
 
       if (data.length < 1) {
-        return wrapper.data({
-          status: false,
-          message: 'Chart data not available',
-          data: {
-            id: 'upss',
-            color: 'hsl(150, 70%, 50%)',
-            data: [],
-          },
-        }, 'success get financials', 404);
+        return wrapper.data([], 'success get financials', 200);
       }
 
       const result = [];
@@ -178,7 +162,7 @@ class GetClass {
       return wrapper.data(result, 'success get financials', 200);
     } catch (error) {
       console.log(error);
-      return wrapper.data(error, 'Gagal mengambil data buku', 500);
+      return wrapper.data([], 'Gagal mengambil data buku', 500);
     }
   }
 }

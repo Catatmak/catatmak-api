@@ -80,7 +80,7 @@ class GetClass {
       return wrapper.data([], 'success get insight', 200);
     } catch (error) {
       // console.log(error);
-      return wrapper.data([], 'failed get insight', 500);
+      return wrapper.data([], 'failed get insight', 200);
     }
   }
 }

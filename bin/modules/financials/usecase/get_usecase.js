@@ -232,7 +232,7 @@ class GetClass {
       return wrapper.data(data, 'success get financials', 200);
     } catch (error) {
       console.log(error);
-      return wrapper.data(error, 'Gagal mengambil data buku', 500);
+      return wrapper.data(error, 'Gagal mengambil data buku', 200);
     }
   }
 

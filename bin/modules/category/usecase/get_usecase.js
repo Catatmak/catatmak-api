@@ -26,7 +26,7 @@ class GetClass {
       return wrapper.data({count: data}, 'success get total uncategorize', 200);
     } catch (error) {
       console.log(error);
-      return wrapper.data({count: 0}, 'failed get total uncategorize', 500);
+      return wrapper.data({count: 0}, 'failed get total uncategorize', 200);
     }
   }
 
@@ -86,7 +86,7 @@ class GetClass {
       return wrapper.data(response, 'success get uncategorize', 200);
     } catch (error) {
       console.log(error);
-      return wrapper.data([], 'failed get uncategorize', 500);
+      return wrapper.data([], 'failed get uncategorize', 200);
     }
   }
 }
