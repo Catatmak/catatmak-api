@@ -6,6 +6,8 @@ const wrapper = require('../../../utils/wrapper');
 const {BadRequestError} = require('../../../utils/error');
 const {encyptDataAES256Cbc} = require('../../../utils/crypsi');
 const {ObjectId} = require('mongodb');
+const moment = require('moment-timezone');
+
 class UpsertClass {
   async createFinancial(payload) {
     try {
@@ -89,8 +91,12 @@ class UpsertClass {
       const collection = payload.mongo.db.collection('financials');
 
       for (const financial of payload.data) {
-        const {id, title, category, price, created_at, type, image_name, image_url} = financial;
+        const {id, title, category, price, type, image_name, image_url} = financial;
         const filter = {_id: ObjectId(id), phone: phone};
+
+        const now = moment(new Date());
+        const currentDate = now.format('YYYY-MM-DDTHH:mm:ss.SSS[Z]');
+
 
         const update = {
           $set: {
@@ -100,8 +106,8 @@ class UpsertClass {
             category: category,
             image_name: image_name,
             image_url: image_url,
-            created_at: created_at ? created_at : new Date(),
-            updated_at: created_at ? created_at : new Date(),
+            created_at: new Date(currentDate),
+            updated_at: new Date(currentDate),
           },
         };
 
@@ -114,13 +120,14 @@ class UpsertClass {
             category: category,
             image_name: image_name,
             image_url: image_url,
-            created_at: new Date(),
-            updated_at: new Date(),
+            created_at: new Date(currentDate),
+            updated_at: new Date(currentDate),
           });
         } else {
           await collection.updateOne(filter, update, {upsert: true});
         }
       }
+
 
       return wrapper.data({}, 'Berhasil Simpan Data 😎', 201);
     } catch (error) {
