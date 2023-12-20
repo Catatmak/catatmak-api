@@ -92,24 +92,10 @@ class UpsertClass {
 
       for (const financial of payload.data) {
         const {id, title, category, price, type, image_name, image_url} = financial;
-        const filter = {_id: ObjectId(id), phone: phone};
+        const filter = {_id: ObjectId(id)};
 
         const now = moment(new Date());
         const currentDate = now.format('YYYY-MM-DDTHH:mm:ss.SSS[Z]');
-
-
-        const update = {
-          $set: {
-            title: encyptDataAES256Cbc(title),
-            price: encyptDataAES256Cbc(price),
-            type: type,
-            category: category,
-            image_name: image_name,
-            image_url: image_url,
-            created_at: new Date(currentDate),
-            updated_at: new Date(currentDate),
-          },
-        };
 
         if (!id) {
           await collection.insertOne({
@@ -124,7 +110,19 @@ class UpsertClass {
             updated_at: new Date(currentDate),
           });
         } else {
-          await collection.updateOne(filter, update, {upsert: true});
+          const update = {
+            $set: {
+              title: encyptDataAES256Cbc(title),
+              price: encyptDataAES256Cbc(price),
+              type: type,
+              category: category,
+              image_name: image_name,
+              image_url: image_url,
+              created_at: new Date(currentDate),
+              updated_at: new Date(currentDate),
+            },
+          };
+          await collection.updateOne(filter, update, {upsert: false});
         }
       }
 

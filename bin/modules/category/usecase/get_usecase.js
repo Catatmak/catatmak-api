@@ -51,41 +51,43 @@ class GetClass {
         return wrapper.data(response, 'success get total uncategorize', 200);
       }
 
-      data.map((item) => {
-        listTitle.push(decryptDataAES256Cbc(item.title));
-        response.push({
-          id: item._id,
-          title: decryptDataAES256Cbc(item.title),
-          price: decryptDataAES256Cbc(item.price),
-          type: item.type,
-          category: item.category,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
+      if (data.length > 0) {
+        data.map((item) => {
+          listTitle.push(decryptDataAES256Cbc(item.title));
+          response.push({
+            id: item._id,
+            title: decryptDataAES256Cbc(item.title),
+            price: decryptDataAES256Cbc(item.price) ?? 0,
+            type: item.type,
+            category: item.category,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+          });
         });
-      });
 
-      const body = {
-        nama: listTitle,
-      };
+        const body = {
+          nama: listTitle,
+        };
 
+        // fetch to ml api
+        const config = {
+          method: 'post',
+          url: 'https://catatmak-ml-api-lbiuaop2oq-et.a.run.app/categorize',
+          data: body,
+        };
 
-      // fetch to ml api
-      const config = {
-        method: 'post',
-        url: 'https://catatmak-ml-api-lbiuaop2oq-et.a.run.app/categorize',
-        data: body,
-      };
+        const mlData = await axios.request(config);
+        listCategory = mlData.data.predicted_categories;
 
-      const mlData = await axios.request(config);
-      listCategory = mlData.data.predicted_categories;
-
-      for (let index = 0; index < response.length; index++) {
-        response[index].category = listCategory[index] ?? 'Lainnya';
+        for (let index = 0; index < response.length; index++) {
+          response[index].category = listCategory[index] ?? 'Lainnya';
+        }
+        return wrapper.data(response, 'success get uncategorize', 200);
       }
 
       return wrapper.data(response, 'success get uncategorize', 200);
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       return wrapper.data([], 'failed get uncategorize', 200);
     }
   }

@@ -1,7 +1,8 @@
 /* eslint-disable max-len */
 /* eslint-disable require-jsdoc */
 function formatToRupiah(angka) {
-  const formattedAngka = parseInt(angka).toLocaleString('id-ID');
+  angka = parseInt(angka) ?? 0;
+  const formattedAngka = angka.toLocaleString('id-ID');
 
   return `Rp. ${formattedAngka}`;
 }
