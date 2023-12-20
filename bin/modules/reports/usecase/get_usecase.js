@@ -83,7 +83,7 @@ class GetClass {
         z: totalQuantityPerDay,
       }));
 
-      finalResult.sort((a, b) => new Date(b.x) - new Date(a.x));
+      finalResult.sort((a, b) => new Date(a.x) - new Date(b.x));
 
       return wrapper.data(finalResult, 'success get financials', 200);
     } catch (error) {
@@ -161,9 +161,6 @@ class GetClass {
       for (const key in groupedData) {
         result.push(groupedData[key]);
       }
-
-      // return result;
-
 
       return wrapper.data(result, 'success get financials', 200);
     } catch (error) {
