@@ -144,10 +144,16 @@ class GetClass {
 
       // Group the data by date and type
       const groupedData = data.reduce((acc, entry) => {
+        if (entry.type == 'income') {
+          entry.type = 'Pemasukan';
+        } else {
+          entry.type = 'Pengeluaran';
+        }
+
         const key = entry.type;
         acc[key] = acc[key] || {x: entry.type, y: 0, z: 0};
         acc[key].z += 1; // Increment count
-        acc[key].y += parseInt(decryptDataAES256Cbc(entry.price)); // Add price (assuming it's hexadecimal)
+        acc[key].y += parseInt(decryptDataAES256Cbc(entry.price)) ?? 0; // Add price (assuming it's hexadecimal)
         return acc;
       }, {});
 
